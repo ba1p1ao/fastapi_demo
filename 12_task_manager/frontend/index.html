@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>任务管理系统</h1>
+        
+        <!-- 添加任务表单 -->
+        <div class="task-form">
+            <h2>添加新任务</h2>
+            <form id="add-task-form">
+                <input type="text" id="title" placeholder="任务标题" required>
+                <textarea id="description" placeholder="任务描述"></textarea>
+                <button type="submit">添加任务</button>
+            </form>
+        </div>
+        
+        <!-- 任务列表 -->
+        <div class="task-list">
+            <h2>任务列表</h2>
+            <div id="tasks-container"></div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
