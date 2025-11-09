@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 游戏文件共享系统</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { background: #333; color: white; padding: 15px; }
+        .logo { font-size: 24px; font-weight: bold; }
+        nav a { color: white; margin-left: 20px; text-decoration: none; }
+        .user-info { background: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .user-actions { margin: 20px 0; }
+        .user-actions button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
+        .upload-btn { background: #28a745; color: white; border: none; }
+        .file-management { background: white; padding: 20px; border-radius: 5px; }
+        .file-list { margin-top: 20px; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .file-actions button { padding: 5px 10px; margin-left: 5px; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-btn { cursor: pointer; font-size: 24px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; }
+        .form-actions { display: flex; justify-content: flex-end; }
+        .form-actions button { padding: 8px 15px; margin-left: 10px; cursor: pointer; }
+        .subcategory-group { display: none; }
+        /* 用户导航样式 */
+        #user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        #username-display {
+            color: white;
+        }
+
+        #logout-link {
+            color: #ff6b6b;
+            text-decoration: none;
+        }
+
+        #logout-link:hover {
+            color: #ff5252;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">游戏文件共享</div>
+        <nav>
+            <a href="index.html">首页</a>
+            <a href="profile.html">个人中心</a>
+            <a href="login.html" id="login-btn">登录/注册</a>
+            <div id="user-info" style="display: none;">
+                <span id="username-display"></span>
+                <a href="#" id="logout-link" style="margin-left: 10px;">退出</a>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="user-info">
+            <h2>个人中心</h2>
+            <p>用户名: <span id="username">用户名</span></p>
+            <p>邮箱: <span id="email">邮箱</span></p>
+        </div>
+        
+        <div class="user-actions">
+            <button class="upload-btn" id="upload-btn">上传文件</button>
+        </div>
+        
+        <div class="file-management">
+            <h3>我的文件</h3>
+            <div class="file-list" id="my-file-list">
+                <!-- 用户文件列表将通过JS动态加载 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上传文件模态框 -->
+    <div class="modal" id="upload-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>上传文件</h3>
+                <span class="close-btn" id="close-upload-modal">&times;</span>
+            </div>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="file">选择文件</label>
+                    <input type="file" id="file" required>
+                </div>
+                <div class="form-group">
+                    <label for="file-name">文件名称</label>
+                    <input type="text" id="file-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="file-description">文件描述</label>
+                    <textarea id="file-description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="file-category">分类</label>
+                    <select id="file-category">
+                        <option value="game">游戏</option>
+                        <option value="tool">工具</option>
+                        <option value="mod">模组</option>
+                    </select>
+                </div>
+                
+                <!-- 游戏子分类 -->
+                <div class="form-group subcategory-group" id="game-subcategory-group">
+                    <label for="file-game-subcategory">游戏子分类</label>
+                    <select id="file-game-subcategory">
+                        <option value="shooter">射击</option>
+                        <option value="action">动作</option>
+                        <option value="rpg">角色扮演</option>
+                        <option value="strategy">策略</option>
+                        <option value="sports">体育</option>
+                        <option value="racing">竞速</option>
+                        <option value="simulation">模拟</option>
+                    </select>
+                </div>
+                
+                <!-- 工具子分类 -->
+                <div class="form-group subcategory-group" id="tool-subcategory-group">
+                    <label for="file-tool-subcategory">工具子分类</label>
+                    <select id="file-tool-subcategory">
+                        <option value="cheat">修改器</option>
+                        <option value="editor">编辑器</option>
+                        <option value="utility">辅助工具</option>
+                        <option value="optimization">优化工具</option>
+                    </select>
+                </div>
+                
+                <!-- 模组子分类 -->
+                <div class="form-group subcategory-group" id="mod-subcategory-group">
+                    <label for="file-mod-subcategory">模组子分类</label>
+                    <select id="file-mod-subcategory">
+                        <option value="graphics">图形模组</option>
+                        <option value="gameplay">玩法模组</option>
+                        <option value="content">内容模组</option>
+                        <option value="ui">界面模组</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file-permission">权限</label>
+                    <select id="file-permission">
+                        <option value="public">公开</option>
+                        <option value="private">仅自己可见</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-upload">取消</button>
+                    <button type="submit">上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 编辑文件模态框 -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑文件</h3>
+                <span class="close-btn" id="close-edit-modal">&times;</span>
+            </div>
+            <form id="edit-form">
+                <input type="hidden" id="edit-file-id">
+                <div class="form-group">
+                    <label for="edit-file-name">文件名称</label>
+                    <input type="text" id="edit-file-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-file-description">文件描述</label>
+                    <textarea id="edit-file-description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="edit-file-category">分类</label>
+                    <select id="edit-file-category">
+                        <option value="game">游戏</option>
+                        <option value="tool">工具</option>
+                        <option value="mod">模组</option>
+                    </select>
+                </div>
+                
+                <!-- 游戏子分类 -->
+                <div class="form-group subcategory-group" id="edit-game-subcategory-group">
+                    <label for="edit-file-game-subcategory">游戏子分类</label>
+                    <select id="edit-file-game-subcategory">
+                        <option value="shooter">射击</option>
+                        <option value="action">动作</option>
+                        <option value="rpg">角色扮演</option>
+                        <option value="strategy">策略</option>
+                        <option value="sports">体育</option>
+                        <option value="racing">竞速</option>
+                        <option value="simulation">模拟</option>
+                    </select>
+                </div>
+                
+                <!-- 工具子分类 -->
+                <div class="form-group subcategory-group" id="edit-tool-subcategory-group">
+                    <label for="edit-file-tool-subcategory">工具子分类</label>
+                    <select id="edit-file-tool-subcategory">
+                        <option value="cheat">修改器</option>
+                        <option value="editor">编辑器</option>
+                        <option value="utility">辅助工具</option>
+                        <option value="optimization">优化工具</option>
+                    </select>
+                </div>
+                
+                <!-- 模组子分类 -->
+                <div class="form-group subcategory-group" id="edit-mod-subcategory-group">
+                    <label for="edit-file-mod-subcategory">模组子分类</label>
+                    <select id="edit-file-mod-subcategory">
+                        <option value="graphics">图形模组</option>
+                        <option value="gameplay">玩法模组</option>
+                        <option value="content">内容模组</option>
+                        <option value="ui">界面模组</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-file-permission">权限</label>
+                    <select id="edit-file-permission">
+                        <option value="public">公开</option>
+                        <option value="private">仅自己可见</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-edit">取消</button>
+                    <button type="submit">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 分享文件模态框 -->
+    <div class="modal" id="share-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>分享文件</h3>
+                <span class="close-btn" id="close-share-modal">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>分享链接</label>
+                <input type="text" id="share-link" readonly>
+            </div>
+            <div class="form-group">
+                <label>提取密码</label>
+                <input type="text" id="share-password" readonly>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="close-share">关闭</button>
+                <button type="button" id="copy-share">复制链接</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem("token")
+        $(document).ajaxSend(function(event, xhr, settings) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+        });
+      
+        $(document).ready(function() {
+            
+            checkLoginStatus();
+
+            // 加载用户信息和文件列表
+            loadUserInfo();
+            loadMyFiles();
+            
+            // 上传文件按钮
+            $('#upload-btn').click(function() {
+                $('#upload-modal').show();
+            });
+            
+            // 关闭上传模态框
+            $('#close-upload-modal, #cancel-upload').click(function() {
+                $('#upload-modal').hide();
+            });
+            
+            // 分类变化时显示对应的子分类
+            $('#file-category').change(function() {
+                $('.subcategory-group').hide();
+                const category = $(this).val();
+                $(`#${category}-subcategory-group`).show();
+            });
+            
+            // 编辑分类变化时显示对应的子分类
+            $('#edit-file-category').change(function() {
+                $('.subcategory-group').hide();
+                const category = $(this).val();
+                $(`#edit-${category}-subcategory-group`).show();
+            });
+            
+            // 提交上传表单
+            $('#upload-form').submit(function(e) {
+                e.preventDefault();
+                uploadFile();
+            });
+            
+            // 关闭编辑模态框
+            $('#close-edit-modal, #cancel-edit').click(function() {
+                $('#edit-modal').hide();
+            });
+            
+            // 提交编辑表单
+            $('#edit-form').submit(function(e) {
+                e.preventDefault();
+                updateFile();
+            });
+            
+            // 关闭分享模态框
+            $('#close-share-modal, #close-share').click(function() {
+                $('#share-modal').hide();
+            });
+            
+            // 复制分享链接
+            $('#copy-share').click(function() {
+                const shareLink = $('#share-link');
+                shareLink.select();
+                document.execCommand('copy');
+                alert('链接已复制到剪贴板');
+            });
+
+            // 个人中心页的退出按钮
+            $('#logout-btn').click(function() {
+                if (confirm('确定要退出登录吗？')) {
+                    logout();
+                }
+            });
+        });
+        // 退出链接点击事件
+        $(document).on('click', '#logout-link', function(e) {
+            e.preventDefault();
+            if (confirm('确定要退出登录吗？')) {
+                logout();
+            }
+        });
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 已登录，显示用户信息和退出链接
+                $.ajax({
+                    url: '/api/users/me',
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(response) {
+                        // 更新导航栏
+                        $('#login-btn').hide();
+                        $('#user-info').show();
+                        $('#username-display').text(response.username);
+                        
+                        // 更新个人中心页的用户信息
+                        if (window.location.pathname.includes('profile.html')) {
+                            $('#username').text(response.username);
+                            $('#email').text(response.email);
+                        }
+                    },
+                    error: function(xhr) {
+                        // token无效，清除本地存储
+                        localStorage.removeItem('token');
+                        showLoginState();
+                    }
+                });
+            } else {
+                showLoginState();
+            }
+        }
+
+        // 显示登录状态
+        function showLoginState() {
+            $('#login-btn').show();
+            $('#user-info').hide();
+        }
+
+        // 退出登录函数
+        function logout() {
+            // 清除本地存储的token
+            localStorage.removeItem('token');
+            
+            // 更新导航栏
+            showLoginState();
+            
+            // 显示退出成功消息
+            alert('已成功退出登录');
+            
+            // 如果是个人中心页，跳转到首页
+            if (window.location.pathname.includes('profile.html')) {
+                window.location.href = 'index.html';
+            } else {
+                // 刷新当前页面
+                window.location.reload();
+            }
+        }
+
+        function loadUserInfo() {
+            $.ajax({
+                url: '/api/users/me',
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                success: function(response) {
+                    $('#username').text(response.username);
+                    $('#email').text(response.email);
+                },
+                error: function(xhr) {
+                    // 如果未登录，跳转到首页
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+        
+        function loadMyFiles() {
+            $.ajax({
+                url: '/api/users/me/files',
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                success: function(response) {
+                    renderMyFiles(response);
+                },
+                error: function(xhr) {
+                    alert('加载文件列表失败');
+                }
+            });
+        }
+        
+        function renderMyFiles(files) {
+            const fileList = $('#my-file-list');
+            fileList.empty();
+            
+            if (files.length === 0) {
+                fileList.append('<p>您还没有上传任何文件</p>');
+                return;
+            }
+            
+            files.forEach(file => {
+                // 子分类显示文本映射
+                const subcategoryText = {
+                    'shooter': '射击', 'action': '动作', 'rpg': '角色扮演', 'strategy': '策略',
+                    'sports': '体育', 'racing': '竞速', 'simulation': '模拟',
+                    'cheat': '修改器', 'editor': '编辑器', 'utility': '辅助工具', 'optimization': '优化工具',
+                    'graphics': '图形模组', 'gameplay': '玩法模组', 'content': '内容模组', 'ui': '界面模组'
+                };
+                
+                const fileItem = `
+                    <div class="file-item" data-id="${file.id}">
+                        <div>
+                            <h4>${file.name}</h4>
+                            <p>${file.description}</p>
+                            <span>分类: ${file.category === 'game' ? '游戏' : file.category === 'tool' ? '工具' : '模组'}${file.subcategory ? ` / ${subcategoryText[file.subcategory] || file.subcategory}` : ''}</span><br>
+                            <span>下载: ${file.download_count} | 点赞: ${file.like_count} | 收藏: ${file.collect_count}</span>
+                            <span> | 权限: ${file.permission === 'public' ? '公开' : '私有'}</span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="download-btn" data-id="${file.id}">下载</button>
+                            <button class="edit-btn" data-id="${file.id}">编辑</button>
+                            <button class="share-btn" data-id="${file.id}">分享</button>
+                            <button class="delete-btn" data-id="${file.id}">删除</button>
+                        </div>
+                    </div>
+                `;
+                fileList.append(fileItem);
+            });
+            
+            // 添加按钮事件
+            $('.download-btn').click(function() {
+                const fileId = $(this).data('id');
+                downloadFile(fileId);
+            });
+            
+            $('.edit-btn').click(function() {
+                const fileId = $(this).data('id');
+                openEditModal(fileId);
+            });
+            
+            $('.share-btn').click(function() {
+                const fileId = $(this).data('id');
+                shareFile(fileId);
+            });
+            
+            $('.delete-btn').click(function() {
+                const fileId = $(this).data('id');
+                deleteFile(fileId);
+            });
+        }
+        
+        function uploadFile() {
+            const formData = new FormData();
+            formData.append('file', $('#file')[0].files[0]);
+            formData.append('name', $('#file-name').val());
+            formData.append('description', $('#file-description').val());
+            formData.append('category', $('#file-category').val());
+            
+            // 添加子分类
+            const category = $('#file-category').val();
+            const subcategory = $(`#file-${category}-subcategory`).val();
+            formData.append('subcategory', subcategory);
+            
+            formData.append('permission', $('#file-permission').val());
+            
+            $.ajax({
+                url: '/api/files',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#upload-modal').hide();
+                    $('#upload-form')[0].reset();
+                    loadMyFiles();
+                    alert('文件上传成功');
+                },
+                error: function(xhr) {
+                    alert('文件上传失败');
+                }
+            });
+        }
+        
+        function openEditModal(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                method: 'GET',
+                success: function(response) {
+                    $('#edit-file-id').val(response.id);
+                    $('#edit-file-name').val(response.name);
+                    $('#edit-file-description').val(response.description);
+                    $('#edit-file-category').val(response.category);
+                    $('#edit-file-permission').val(response.permission);
+                    
+                    // 设置子分类
+                    $('.subcategory-group').hide();
+                    $(`#edit-${response.category}-subcategory-group`).show();
+                    $(`#edit-file-${response.category}-subcategory`).val(response.subcategory);
+                    
+                    $('#edit-modal').show();
+                },
+                error: function(xhr) {
+                    alert('加载文件信息失败');
+                }
+            });
+        }
+        
+        function updateFile() {
+            const fileId = $('#edit-file-id').val();
+            const category = $('#edit-file-category').val();
+            const subcategory = $(`#edit-file-${category}-subcategory`).val();
+            
+            const data = {
+                name: $('#edit-file-name').val(),
+                description: $('#edit-file-description').val(),
+                category: category,
+                subcategory: subcategory,
+                permission: $('#edit-file-permission').val()
+            };
+            
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                method: 'PUT',
+                data: data,
+                success: function(response) {
+                    $('#edit-modal').hide();
+                    loadMyFiles();
+                    alert('文件更新成功');
+                },
+                error: function(xhr) {
+                    alert('文件更新失败');
+                }
+            });
+        }
+        
+        function shareFile(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}/share`,
+                method: 'POST',
+                success: function(response) {
+                    $('#share-link').val(response.share_link);
+                    $('#share-password').val(response.password);
+                    $('#share-modal').show();
+                },
+                error: function(xhr) {
+                    alert('分享文件失败');
+                }
+            });
+        }
+        
+        function deleteFile(fileId) {
+            if (!confirm('确定要删除这个文件吗？')) {
+                return;
+            }
+            
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                method: 'DELETE',
+                success: function(response) {
+                    loadMyFiles();
+                    alert('文件删除成功');
+                },
+                error: function(xhr) {
+                    alert('文件删除失败');
+                }
+            });
+        }
+        
+        function downloadFile(fileId) {
+            window.open(`/api/files/${fileId}/download`, '_blank');
+            
+            // 更新下载计数
+            $.ajax({
+                url: `/api/files/${fileId}/download`,
+                method: 'POST'
+            });
+        }
+        
+        function logout() {
+            // 清除本地存储的token等
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

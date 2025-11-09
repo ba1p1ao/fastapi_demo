@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件详情 - 游戏文件共享系统</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; background: white; }
+        header { background: #333; color: white; padding: 15px; }
+        .logo { font-size: 24px; font-weight: bold; }
+        nav a { color: white; margin-left: 20px; text-decoration: none; }
+        .file-info { margin: 20px 0; }
+        .file-actions { margin: 20px 0; }
+        .file-actions button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
+        .download-btn { background: #28a745; color: white; border: none; }
+        .like-btn { background: #dc3545; color: white; border: none; }
+        .collect-btn { background: #ffc107; color: black; border: none; }
+        .author-info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .comments { margin: 30px 0; }
+        .comment { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .comment-form textarea { width: 100%; height: 100px; padding: 10px; margin-bottom: 10px; }
+        .comment-form button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+        /* 用户导航样式 */
+        #user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        #username-display {
+            color: white;
+        }
+
+        #logout-link {
+            color: #ff6b6b;
+            text-decoration: none;
+        }
+
+        #logout-link:hover {
+            color: #ff5252;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">游戏文件共享</div>
+        <nav>
+            <a href="index.html">首页</a>
+            <a href="profile.html">个人中心</a>
+            <a href="login.html" id="login-btn">登录/注册</a>
+            <div id="user-info" style="display: none;">
+                <span id="username-display"></span>
+                <a href="#" id="logout-link" style="margin-left: 10px;">退出</a>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="file-info">
+            <h1 id="file-name">文件名称</h1>
+            <p id="file-description">文件描述</p>
+            <div id="file-stats">
+                <span>下载: <span id="download-count">0</span></span>
+                <span>点赞: <span id="like-count">0</span></span>
+                <span>收藏: <span id="collect-count">0</span></span>
+            </div>
+        </div>
+        
+        <div class="file-actions">
+            <button class="download-btn" id="download-btn">下载文件</button>
+            <button class="like-btn" id="like-btn">点赞</button>
+            <button class="collect-btn" id="collect-btn">收藏</button>
+        </div>
+        
+        <div class="author-info">
+            <h3>作者信息</h3>
+            <p id="author-name">作者名称</p>
+            <p id="author-email">作者邮箱</p>
+        </div>
+        
+        <div class="comments">
+            <h3>评论</h3>
+            <div id="comments-list">
+                <!-- 评论列表将通过JS动态加载 -->
+            </div>
+            
+            <div class="comment-form">
+                <h4>发表评论</h4>
+                <textarea id="comment-content" placeholder="请输入评论内容"></textarea>
+                <button id="submit-comment">提交评论</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // 获取文件ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileId = urlParams.get('id');
+            
+            if (!fileId) {
+                alert('文件ID不存在');
+                window.location.href = 'index.html';
+                return;
+            }
+            checkLoginStatus();
+            // 退出链接点击事件
+            $(document).on('click', '#logout-link', function(e) {
+                e.preventDefault();
+                if (confirm('确定要退出登录吗？')) {
+                    logout();
+                }
+            });
+            // 加载文件详情
+            loadFileDetail(fileId);
+            loadComments(fileId);
+            c
+            // 下载按钮
+            $('#download-btn').click(function() {
+                downloadFile(fileId);
+            });
+            
+            // 点赞按钮
+            $('#like-btn').click(function() {
+                likeFile(fileId);
+            });
+            
+            // 收藏按钮
+            $('#collect-btn').click(function() {
+                collectFile(fileId);
+            });
+            
+            // 提交评论
+            $('#submit-comment').click(function() {
+                submitComment(fileId);
+            });
+        });
+                // 检查登录状态
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 已登录，显示用户信息和退出链接
+                $.ajax({
+                    url: '/api/users/me',
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(response) {
+                        // 更新导航栏
+                        $('#login-btn').hide();
+                        $('#user-info').show();
+                        $('#username-display').text(response.username);
+                        
+                        // 更新个人中心页的用户信息
+                        if (window.location.pathname.includes('profile.html')) {
+                            $('#username').text(response.username);
+                            $('#email').text(response.email);
+                        }
+                    },
+                    error: function(xhr) {
+                        // token无效，清除本地存储
+                        localStorage.removeItem('token');
+                        showLoginState();
+                    }
+                });
+            } else {
+                showLoginState();
+            }
+        }
+
+        // 显示登录状态
+        function showLoginState() {
+            $('#login-btn').show();
+            $('#user-info').hide();
+        }
+
+        // 退出登录函数
+        function logout() {
+            // 清除本地存储的token
+            localStorage.removeItem('token');
+            
+            // 更新导航栏
+            showLoginState();
+            
+            // 显示退出成功消息
+            alert('已成功退出登录');
+            
+            // 如果是个人中心页，跳转到首页
+            if (window.location.pathname.includes('profile.html')) {
+                window.location.href = 'index.html';
+            } else {
+                // 刷新当前页面
+                window.location.reload();
+            }
+        }
+
+
+        function loadFileDetail(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                method: 'GET',
+                success: function(response) {
+                    $('#file-name').text(response.name);
+                    $('#file-description').text(response.description);
+                    $('#download-count').text(response.download_count);
+                    $('#like-count').text(response.like_count);
+                    $('#collect-count').text(response.collect_count);
+                    
+                    if (response.author) {
+                        $('#author-name').text(response.author.username);
+                        $('#author-email').text(response.author.email);
+                    }
+                },
+                error: function(xhr) {
+                    alert('加载文件详情失败');
+                }
+            });
+        }
+        
+        function loadComments(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}/comments`,
+                method: 'GET',
+                success: function(response) {
+                    renderComments(response);
+                },
+                error: function(xhr) {
+                    alert('加载评论失败');
+                }
+            });
+        }
+        
+        function renderComments(comments) {
+            const commentsList = $('#comments-list');
+            commentsList.empty();
+            
+            if (comments.length === 0) {
+                commentsList.append('<p>暂无评论</p>');
+                return;
+            }
+            
+            comments.forEach(comment => {
+                const commentElement = `
+                    <div class="comment">
+                        <strong>${comment.user.username}</strong>
+                        <span style="color: #666; font-size: 14px;">${comment.created_at}</span>
+                        <p>${comment.content}</p>
+                    </div>
+                `;
+                commentsList.append(commentElement);
+            });
+        }
+        
+        function downloadFile(fileId) {
+            // 这里应该触发文件下载
+            window.open(`/api/files/${fileId}/download`, '_blank');
+            
+            // 更新下载计数
+            $.ajax({
+                url: `/api/files/${fileId}/download`,
+                method: 'POST',
+                success: function(response) {
+                    $('#download-count').text(response.download_count);
+                }
+            });
+        }
+        
+        function likeFile(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}/like`,
+                method: 'POST',
+                success: function(response) {
+                    $('#like-count').text(response.like_count);
+                    alert('点赞成功');
+                },
+                error: function(xhr) {
+                    alert('点赞失败');
+                }
+            });
+        }
+        
+        function collectFile(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}/collect`,
+                method: 'POST',
+                success: function(response) {
+                    $('#collect-count').text(response.collect_count);
+                    alert('收藏成功');
+                },
+                error: function(xhr) {
+                    alert('收藏失败');
+                }
+            });
+        }
+        
+        function submitComment(fileId) {
+            const content = $('#comment-content').val().trim();
+            
+            if (!content) {
+                alert('请输入评论内容');
+                return;
+            }
+            
+            $.ajax({
+                url: `/api/files/${fileId}/comments`,
+                method: 'POST',
+                data: { content: content },
+                success: function(response) {
+                    $('#comment-content').val('');
+                    loadComments(fileId);
+                    alert('评论成功');
+                },
+                error: function(xhr) {
+                    alert('评论失败');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

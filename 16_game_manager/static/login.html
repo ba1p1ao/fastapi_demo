@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录/注册 - 游戏文件共享系统</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            background: #f8f9fa;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .auth-form {
+            padding: 30px;
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #0056b3;
+        }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .form-footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .back-home {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-home:hover {
+            text-decoration: underline;
+        }
+        
+        /* 添加忘记密码表单样式 */
+        .reset-instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #0066cc;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">游戏文件共享</div>
+            <div class="subtitle">登录或注册以访问更多功能</div>
+        </div>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">登录</button>
+            <button class="auth-tab" data-tab="register">注册</button>
+            <button class="auth-tab" data-tab="forgot-password">忘记密码</button>
+        </div>
+
+        <!-- 消息显示区域 -->
+        <div class="message" id="message"></div>
+
+        <!-- 登录表单 -->
+        <form id="login-form" class="auth-form active">
+            <div class="form-group">
+                <label for="login-username">用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="submit-btn">登录</button>
+            <div class="form-footer">
+                还没有账户？<a href="#" class="switch-to-register">立即注册</a>
+            </div>
+            <div class="form-footer">
+                <a href="#" class="switch-to-forgot-password">忘记密码？</a>
+            </div>
+        </form>
+
+        <!-- 注册表单 -->
+        <form id="register-form" class="auth-form">
+            <div class="form-group">
+                <label for="register-username">用户名</label>
+                <input type="text" id="register-username" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="register-email">邮箱</label>
+                <input type="email" id="register-email" placeholder="请输入邮箱" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">密码</label>
+                <input type="password" id="register-password" placeholder="请输入密码（至少6位）" required>
+            </div>
+            <div class="form-group">
+                <label for="register-confirm-password">确认密码</label>
+                <input type="password" id="register-confirm-password" placeholder="请再次输入密码" required>
+            </div>
+            <button type="submit" class="submit-btn">注册</button>
+            <div class="form-footer">
+                已有账户？<a href="#" class="switch-to-login">立即登录</a>
+            </div>
+        </form>
+        
+        <!-- 忘记密码表单 -->
+        <form id="forgot-password-form" class="auth-form">
+            <div class="reset-instructions">
+                请输入您注册时使用的邮箱地址，我们将向您发送密码重置链接。
+            </div>
+            <div class="form-group">
+                <label for="forgot-email">邮箱地址</label>
+                <input type="email" id="forgot-email" placeholder="请输入您的邮箱" required>
+            </div>
+            <button type="submit" class="submit-btn">发送重置链接</button>
+            <div class="form-footer">
+                <a href="#" class="switch-to-login">返回登录</a>
+            </div>
+        </form>
+
+        <a href="index.html" class="back-home">返回首页</a>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // 检查是否已登录
+            checkLoginStatus();
+
+            // 切换登录注册标签
+            $('.auth-tab').click(function () {
+                $('.auth-tab').removeClass('active');
+                $(this).addClass('active');
+
+                const tab = $(this).data('tab');
+                $('.auth-form').removeClass('active');
+                $(`#${tab}-form`).addClass('active');
+
+                // 隐藏消息
+                hideMessage();
+            });
+
+            // 通过链接切换表单
+            $('.switch-to-register').click(function (e) {
+                e.preventDefault();
+                $('.auth-tab').removeClass('active');
+                $('.auth-tab[data-tab="register"]').addClass('active');
+                $('.auth-form').removeClass('active');
+                $('#register-form').addClass('active');
+                hideMessage();
+            });
+
+            $('.switch-to-login').click(function (e) {
+                e.preventDefault();
+                $('.auth-tab').removeClass('active');
+                $('.auth-tab[data-tab="login"]').addClass('active');
+                $('.auth-form').removeClass('active');
+                $('#login-form').addClass('active');
+                hideMessage();
+            });
+            
+            $('.switch-to-forgot-password').click(function (e) {
+                e.preventDefault();
+                $('.auth-tab').removeClass('active');
+                $('.auth-tab[data-tab="forgot-password"]').addClass('active');
+                $('.auth-form').removeClass('active');
+                $('#forgot-password-form').addClass('active');
+                hideMessage();
+            });
+
+            // 登录表单提交
+            $('#login-form').submit(function (e) {
+                e.preventDefault();
+                login();
+            });
+
+            // 注册表单提交
+            $('#register-form').submit(function (e) {
+                e.preventDefault();
+                register();
+            });
+            
+            // 忘记密码表单提交
+            $('#forgot-password-form').submit(function (e) {
+                e.preventDefault();
+                forgotPassword();
+            });
+        });
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 已登录，跳转到首页
+                window.location.href = 'index.html';
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageEl = $('#message');
+            messageEl.removeClass('success error');
+            messageEl.addClass(type);
+            messageEl.text(message);
+            messageEl.show();
+
+            // 5秒后自动隐藏
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        // 隐藏消息
+        function hideMessage() {
+            $('#message').hide();
+        }
+
+        // 登录函数
+        function login() {
+            const username = $('#login-username').val();
+            const password = $('#login-password').val();
+
+            if (!username || !password) {
+                showMessage('请输入用户名和密码', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            const submitBtn = $('#login-form .submit-btn');
+            const originalText = submitBtn.text();
+            submitBtn.text('登录中...').prop('disabled', true);
+
+            $.ajax({
+                url: '/api/auth/login',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    username: username,
+                    password: password
+                }),
+                success: function (response) {
+                    // 保存token到本地存储
+                    localStorage.setItem('token', response.access_token);
+
+                    // 显示成功消息
+                    showMessage('登录成功！正在跳转...', 'success');
+
+                    // 延迟跳转，让用户看到成功消息
+                    setTimeout(() => {
+                        // 跳转到首页或来源页面
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const returnUrl = urlParams.get('return_url') || 'index.html';
+                        window.location.href = returnUrl;
+                    }, 1000);
+                },
+                error: function (xhr) {
+                    // 恢复按钮状态
+                    submitBtn.text(originalText).prop('disabled', false);
+
+                    if (xhr.status === 401) {
+                        showMessage('用户名或密码错误', 'error');
+                    } else {
+                        showMessage('登录失败，请稍后重试', 'error');
+                    }
+                }
+            });
+        }
+
+        // 注册函数
+        function register() {
+            const username = $('#register-username').val();
+            const email = $('#register-email').val();
+            const password = $('#register-password').val();
+            const confirmPassword = $('#register-confirm-password').val();
+
+            if (!username || !email || !password || !confirmPassword) {
+                showMessage('请填写所有字段', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('密码长度至少为6位', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            const submitBtn = $('#register-form .submit-btn');
+            const originalText = submitBtn.text();
+            submitBtn.text('注册中...').prop('disabled', true);
+
+            $.ajax({
+                url: '/api/auth/register',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: password
+                }),
+                success: function (response) {
+                    // 保存token到本地存储
+                    localStorage.setItem('token', response.access_token);
+
+                    // 显示成功消息
+                    showMessage('注册成功！正在跳转...', 'success');
+
+                    // 延迟跳转，让用户看到成功消息
+                    setTimeout(() => {
+                        // 跳转到首页或来源页面
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const returnUrl = urlParams.get('return_url') || 'index.html';
+                        window.location.href = returnUrl;
+                    }, 1000);
+                },
+                error: function (xhr) {
+                    // 恢复按钮状态
+                    submitBtn.text(originalText).prop('disabled', false);
+
+                    if (xhr.status === 400) {
+                        const error = xhr.responseJSON;
+                        if (error.detail) {
+                            showMessage(error.detail, 'error');
+                        } else {
+                            showMessage('注册失败，用户名或邮箱可能已存在', 'error');
+                        }
+                    } else {
+                        showMessage('注册失败，请稍后重试', 'error');
+                    }
+                }
+            });
+        }
+        
+        // 忘记密码函数
+        function forgotPassword() {
+            const email = $('#forgot-email').val();
+
+            if (!email) {
+                showMessage('请输入您的邮箱地址', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            const submitBtn = $('#forgot-password-form .submit-btn');
+            const originalText = submitBtn.text();
+            submitBtn.text('发送中...').prop('disabled', true);
+
+            $.ajax({
+                url: '/api/auth/forgot-password',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    email: email
+                }),
+                success: function (response) {
+                    // 恢复按钮状态
+                    submitBtn.text(originalText).prop('disabled', false);
+                    
+                    // 显示成功消息
+                    showMessage('密码重置链接已发送到您的邮箱，请查收！', 'success');
+                    
+                    // 清空表单
+                    $('#forgot-email').val('');
+                    
+                    // 3秒后自动跳转到登录页
+                    setTimeout(() => {
+                        $('.auth-tab').removeClass('active');
+                        $('.auth-tab[data-tab="login"]').addClass('active');
+                        $('.auth-form').removeClass('active');
+                        $('#login-form').addClass('active');
+                    }, 3000);
+                },
+                error: function (xhr) {
+                    // 恢复按钮状态
+                    submitBtn.text(originalText).prop('disabled', false);
+
+                    if (xhr.status === 404) {
+                        showMessage('该邮箱未注册，请检查邮箱地址', 'error');
+                    } else if (xhr.status === 400) {
+                        const error = xhr.responseJSON;
+                        if (error.detail) {
+                            showMessage(error.detail, 'error');
+                        } else {
+                            showMessage('请求失败，请稍后重试', 'error');
+                        }
+                    } else {
+                        showMessage('发送失败，请稍后重试', 'error');
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

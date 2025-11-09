@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏文件共享系统</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; }
+        .main-content { flex: 1; margin-right: 20px; }
+        .sidebar { width: 300px; }
+        header { background: #333; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: bold; }
+        nav a { color: white; margin-left: 20px; text-decoration: none; }
+        .search-bar { display: flex; margin: 20px 0; }
+        .search-bar input { flex: 1; padding: 10px; border: 1px solid #ddd; }
+        .search-bar button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .categories { margin: 15px 0; }
+        .categories button { padding: 8px 15px; margin-right: 10px; margin-bottom: 10px; background: #eee; border: 1px solid #ddd; cursor: pointer; }
+        .subcategories { margin: 10px 0; display: none; }
+        .subcategories button { padding: 6px 12px; margin-right: 8px; margin-bottom: 5px; background: #f8f9fa; border: 1px solid #ddd; cursor: pointer; font-size: 14px; }
+        .file-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .file-card { background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; }
+        .file-card h3 { margin: 0 0 10px; }
+        .file-stats { display: flex; justify-content: space-between; margin-top: 10px; color: #666; font-size: 14px; }
+        .hot-files { background: white; padding: 15px; border-radius: 5px; }
+        .hot-files h2 { margin-top: 0; }
+        .hot-list { list-style: none; padding: 0; }
+        .hot-list li { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .pagination { display: flex; justify-content: center; margin-top: 20px; }
+        .pagination button { padding: 8px 15px; margin: 0 5px; background: white; border: 1px solid #ddd; cursor: pointer; }
+        .active { background: #007bff !important; color: white; }
+        /* 用户导航样式 */
+#user-nav {
+    display: flex;
+    align-items: center;
+}
+
+#user-info {
+    display: flex;
+    align-items: center;
+}
+
+#username-display {
+    color: white;
+}
+
+#logout-link {
+    color: #ff6b6b;
+    text-decoration: none;
+}
+
+#logout-link:hover {
+    color: #ff5252;
+    text-decoration: underline;
+}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">游戏文件共享</div>
+        <nav>
+            <a href="index.html">首页</a>
+            <a href="profile.html", id="profile-btn">个人中心</a>
+            <a href="login.html" id="login-btn">登录/注册</a>
+            <div id="user-info" style="display: none;">
+                <span id="username-display"></span>
+                <a href="#" id="logout-link" style="margin-left: 10px;">退出</a>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="main-content">
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="搜索文件...">
+                <button id="search-btn">搜索</button>
+            </div>
+            
+            <div class="categories">
+                <button class="category-btn active" data-category="all">全部</button>
+                <button class="category-btn" data-category="game">游戏</button>
+                <button class="category-btn" data-category="tool">工具</button>
+                <button class="category-btn" data-category="mod">模组</button>
+            </div>
+            
+            <!-- 游戏子分类 -->
+            <div class="subcategories" id="game-subcategories">
+                <button class="subcategory-btn active" data-subcategory="">全部</button>
+                <button class="subcategory-btn" data-subcategory="shooter">射击</button>
+                <button class="subcategory-btn" data-subcategory="action">动作</button>
+                <button class="subcategory-btn" data-subcategory="rpg">角色扮演</button>
+                <button class="subcategory-btn" data-subcategory="strategy">策略</button>
+                <button class="subcategory-btn" data-subcategory="sports">体育</button>
+                <button class="subcategory-btn" data-subcategory="racing">竞速</button>
+                <button class="subcategory-btn" data-subcategory="simulation">模拟</button>
+            </div>
+            
+            <!-- 工具子分类 -->
+            <div class="subcategories" id="tool-subcategories">
+                <button class="subcategory-btn active" data-subcategory="">全部</button>
+                <button class="subcategory-btn" data-subcategory="cheat">修改器</button>
+                <button class="subcategory-btn" data-subcategory="editor">编辑器</button>
+                <button class="subcategory-btn" data-subcategory="utility">辅助工具</button>
+                <button class="subcategory-btn" data-subcategory="optimization">优化工具</button>
+            </div>
+            
+            <!-- 模组子分类 -->
+            <div class="subcategories" id="mod-subcategories">
+                <button class="subcategory-btn active" data-subcategory="">全部</button>
+                <button class="subcategory-btn" data-subcategory="graphics">图形模组</button>
+                <button class="subcategory-btn" data-subcategory="gameplay">玩法模组</button>
+                <button class="subcategory-btn" data-subcategory="content">内容模组</button>
+                <button class="subcategory-btn" data-subcategory="ui">界面模组</button>
+            </div>
+            
+            <div class="file-list" id="file-list">
+                <!-- 文件列表将通过JS动态加载 -->
+            </div>
+            
+            <div class="pagination" id="pagination">
+                <!-- 分页控件将通过JS动态加载 -->
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="hot-files">
+                <h2>热门游戏</h2>
+                <ul class="hot-list" id="hot-list">
+                    <!-- 热门文件列表将通过JS动态加载 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 子分类映射
+        const subcategoryMap = {
+            'game': 'game-subcategories',
+            'tool': 'tool-subcategories',
+            'mod': 'mod-subcategories'
+        };
+        let token = localStorage.getItem("token")
+        $(document).ajaxSend(function(event, xhr, settings) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+        });
+        
+        $(document).ready(function() {
+            // 加载文件列表
+
+            checkLoginStatus();
+            // 退出链接点击事件
+            $(document).on('click', '#logout-link', function(e) {
+                e.preventDefault();
+                if (confirm('确定要退出登录吗？')) {
+                    logout();
+                }
+            });
+            
+
+            loadFiles();
+            loadHotFiles();
+            // 搜索功能
+            $('#search-btn').click(function() {
+                loadFiles();
+            });
+            
+            // 分类筛选
+            $('.category-btn').click(function() {
+                $('.category-btn').removeClass('active');
+                $(this).addClass('active');
+                
+                // 隐藏所有子分类
+                $('.subcategories').hide();
+                
+                // 显示当前分类的子分类
+                const category = $(this).data('category');
+                if (category !== 'all') {
+                    $(`#${subcategoryMap[category]}`).show();
+                }
+                
+                // 重置子分类按钮状态
+                $('.subcategory-btn').removeClass('active');
+                $('.subcategory-btn[data-subcategory=""]').addClass('active');
+                
+                loadFiles();
+            });
+            
+            // 子分类筛选
+            $(document).on('click', '.subcategory-btn', function() {
+                $(this).siblings().removeClass('active');
+                $(this).addClass('active');
+                loadFiles();
+            });
+            
+            // 登录/注册按钮
+            $('#login-btn').click(function() {
+                // 跳转到登录页面
+                window.location.href = 'login.html';
+            });
+        });
+        // 检查登录状态
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 已登录，显示用户信息和退出链接
+                $.ajax({
+                    url: '/api/users/me',
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    success: function(response) {
+                        // 更新导航栏
+                        $('#login-btn').hide();
+                        $('#user-info').show();
+                        $('#username-display').text(response.username);
+                        
+                        // 更新个人中心页的用户信息
+                        if (window.location.pathname.includes('profile.html')) {
+                            $('#username').text(response.username);
+                            $('#email').text(response.email);
+                        }
+                    },
+                    error: function(xhr) {
+                        // token无效，清除本地存储
+                        localStorage.removeItem('token');
+                        showLoginState();
+                    }
+                });
+            } else {
+                showLoginState();
+            }
+        }
+        // 显示登录状态
+        function showLoginState() {
+            $('#login-btn').show();
+            $('#user-info').hide();
+        }
+
+        // 退出登录函数
+        function logout() {
+            // 清除本地存储的token
+            localStorage.removeItem('token');
+            
+            // 更新导航栏
+            showLoginState();
+            
+            // 显示退出成功消息
+            alert('已成功退出登录');
+            
+            // 如果是个人中心页，跳转到首页
+            if (window.location.pathname.includes('profile.html')) {
+                window.location.href = 'index.html';
+            } else {
+                // 刷新当前页面
+                window.location.reload();
+            }
+        }
+
+        function loadFiles(page = 1) {
+            const keyword = $('#search-input').val();
+            const category = $('.category-btn.active').data('category');
+            const subcategory = category !== 'all' ? $(`#${subcategoryMap[category]} .subcategory-btn.active`).data('subcategory') : '';
+            
+            $.ajax({
+                url: '/api/files/',
+                method: 'GET',
+                data: {
+                    page: page,
+                    keyword: keyword,
+                    category: category === 'all' ? '' : category,
+                    subcategory: subcategory
+                },
+                success: function(response) {
+                    renderFiles(response.files);
+                    renderPagination(response.total_pages, page);
+                },
+                error: function(xhr) {
+                    alert('加载文件列表失败');
+                }
+            });
+        }
+        
+        function loadHotFiles() {
+            $.ajax({
+                url: '/api/files/hot',
+                method: 'GET',
+                data: { category: 'game' }, // 只获取游戏分类的热门文件
+                success: function(response) {
+                    renderHotFiles(response);
+                },
+                error: function(xhr) {
+                    alert('加载热门文件失败');
+                }
+            });
+        }
+        
+        function renderFiles(files) {
+            const fileList = $('#file-list');
+            fileList.empty();
+            
+            if (files.length === 0) {
+                fileList.append('<p>没有找到相关文件</p>');
+                return;
+            }
+            
+            files.forEach(file => {
+                const fileCard = `
+                    <div class="file-card" data-id="${file.id}">
+                        <h3>${file.name}</h3>
+                        <p>${file.description}</p>
+                        <div class="file-stats">
+                            <span>下载: ${file.download_count}</span>
+                            <span>点赞: ${file.like_count}</span>
+                            <span>收藏: ${file.collect_count}</span>
+                        </div>
+                    </div>
+                `;
+                fileList.append(fileCard);
+            });
+            
+            // 添加点击事件
+            $('.file-card').click(function() {
+                const fileId = $(this).data('id');
+                window.location.href = `detail.html?id=${fileId}`;
+            });
+        }
+        
+        function renderPagination(totalPages, currentPage) {
+            const pagination = $('#pagination');
+            pagination.empty();
+            
+            if (totalPages <= 1) return;
+            
+            // 上一页
+            if (currentPage > 1) {
+                const prevBtn = $('<button>上一页</button>');
+                prevBtn.click(function() {
+                    loadFiles(currentPage - 1);
+                });
+                pagination.append(prevBtn);
+            }
+            
+            // 页码
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    const btn = $(`<button>${i}</button>`);
+                    if (i === currentPage) {
+                        btn.addClass('active');
+                    }
+                    btn.click(function() {
+                        loadFiles(i);
+                    });
+                    pagination.append(btn);
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    pagination.append('<span>...</span>');
+                }
+            }
+            
+            // 下一页
+            if (currentPage < totalPages) {
+                const nextBtn = $('<button>下一页</button>');
+                nextBtn.click(function() {
+                    loadFiles(currentPage + 1);
+                });
+                pagination.append(nextBtn);
+            }
+        }
+        
+        function renderHotFiles(files) {
+            const hotList = $('#hot-list');
+            hotList.empty();
+            
+            files.forEach((file, index) => {
+                const item = `
+                    <li>
+                        <span>${index + 1}. </span>
+                        <a href="detail.html?id=${file.id}">${file.name}</a>
+                        <span style="float: right;">下载: ${file.download_count}</span>
+                    </li>
+                `;
+                hotList.append(item);
+            });
+        }
+    </script>
+</body>
+</html>
