@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>局域网文件共享系统</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI', Arial, sans-serif}
+        body{background:#f5f7fa;color:#333;line-height:1.6}
+        .container{max-width:1200px;margin:0 auto;padding:15px}
+        header{background:#fff;padding:15px 20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:20px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center}
+        .logo{font-size:24px;font-weight:bold;color:#2c3e50;display:flex;align-items:center}
+        .logo:before{content:"📁";margin-right:8px}
+        .search-box{flex:1;margin:10px 20px;display:flex;align-items:center;min-width:200px}
+        .search-box input{flex:1;padding:10px 15px;border:1px solid #ddd;border-radius:6px 0 0 6px;font-size:14px;transition:border-color 0.3s}
+        .search-box input:focus{outline:none;border-color:#3498db}
+        .search-box button{padding:10px 15px;background:#3498db;color:white;border:1px solid #3498db;border-radius:0 6px 6px 0;cursor:pointer;font-weight:500;transition:background 0.3s}
+        .search-box button:hover{background:#2980b9}
+        .auth-buttons{display:flex;gap:10px}
+        .auth-buttons a{padding:8px 15px;text-decoration:none;border-radius:6px;cursor:pointer;font-weight:500;transition:all 0.3s;font-size:14px}
+        .login-btn{background:#3498db;color:white}
+        .login-btn:hover{background:#2980b9;transform:translateY(-2px)}
+        .register-btn{background:#2ecc71;color:white}
+        .register-btn:hover{background:#27ae60;transform:translateY(-2px)}
+        .user-info{display:none;align-items:center;gap:15px}
+        .user-info span{font-weight:500}
+        .user-info a{padding:8px 15px;text-decoration:none;border-radius:6px;cursor:pointer;font-weight:500;transition:all 0.3s;font-size:14px}
+        .profile-btn{background:#9b59b6;color:white}
+        .profile-btn:hover{background:#8e44ad;transform:translateY(-2px)}
+        .logout-btn{background:#e74c3c;color:white}
+        .logout-btn:hover{background:#c0392b;transform:translateY(-2px)}
+        .upload-section{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;padding:15px;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08)}
+        .upload-section input{flex:1;min-width:200px;padding:10px 15px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+        .upload-section button{padding:10px 15px;background:#23936f;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;transition:all 0.3s}
+        .upload-section button:hover{background:#1c736d;transform:translateY(-2px)}
+        .breadcrumb{padding:12px 15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,0,0,0.08);overflow-x:auto;white-space:nowrap}
+        .breadcrumb a{color:#3498db;text-decoration:none;margin:0 5px;transition:color 0.3s}
+        .breadcrumb a:hover{color:#2980b9}
+        .breadcrumb span{margin:0 5px;color:#7f8c8d}
+        .file-list{background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08);overflow:hidden;overflow-x:auto}
+        table{width:100%;border-collapse:collapse;min-width:600px}
+        th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #eee}
+        th{background:#f8f9fa;cursor:pointer;font-weight:600;position:sticky;top:0}
+        th:hover{background:#e9ecef}
+        .file-icon{width:20px;margin-right:10px}
+        .file-name a{color:#333;text-decoration:none;transition:color 0.3s}
+        .file-name a:hover{color:#3498db}
+        .actions{display:flex;gap:8px;flex-wrap:wrap}
+        .actions a{padding:4px 8px;color:#3498db;text-decoration:none;cursor:pointer;border-radius:4px;transition:all 0.3s;font-size:13px}
+        .actions a:hover{background:#f1f8ff;text-decoration:none}
+        .pagination{padding:15px;text-align:center;background:#fff;border-radius:0 0 8px 8px;box-shadow:0 2px 10px rgba(0,0,0,0.08);display:flex;justify-content:center;flex-wrap:wrap;gap:5px}
+        .pagination a{padding:8px 12px;background:#f8f9fa;color:#333;text-decoration:none;border-radius:6px;transition:all 0.3s;font-size:14px}
+        .pagination a:hover{background:#e9ecef}
+        .pagination a.active{background:#3498db;color:white}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;padding:20px}
+        .modal-content{position:relative;background:#fff;padding:20px;border-radius:8px;width:100%;max-width:800px;margin:0 auto;box-shadow:0 5px 15px rgba(0,0,0,0.2)}
+        .modal-header{margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+        .modal-body input, .modal-body button{width:100%;padding:10px;margin-bottom:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+        .modal-body input:focus{outline:none;border-color:#3498db}
+        .modal-body button{background:#3498db;color:white;border:none;cursor:pointer;font-weight:500;transition:background 0.3s}
+        .modal-body button:hover{background:#2980b9}
+        .close{font-size:24px;cursor:pointer;color:#7f8c8d;transition:color 0.3s}
+        .close:hover{color:#333}
+        .profile-search-box{margin-bottom:15px;display:flex;gap:10px}
+        .profile-search-box input{flex:1;padding:10px 15px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+        .profile-search-box button{width: 30%;padding:10px 15px;background:#3498db;color:white;border:1px solid #3498db;border-radius:6px;cursor:pointer;font-weight:500;transition:background 0.3s}
+        .profile-search-box button:hover{background:#2980b9}
+        .profile-pagination{padding:15px;text-align:center;display:flex;justify-content:center;flex-wrap:wrap;gap:5px}
+        .profile-pagination a{padding:8px 12px;background:#f8f9fa;color:#333;text-decoration:none;border-radius:6px;transition:all 0.3s;font-size:14px}
+        .profile-pagination a:hover{background:#e9ecef}
+        .profile-pagination a.active{background:#3498db;color:white}
+        
+        /* 上传进度条样式 */
+        .upload-progress-container {
+            width: 100%;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .upload-progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .upload-progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .upload-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #23936f, #2ecc71);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .upload-speed {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-cancel-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .upload-cancel-btn:hover {
+            background: #c0392b;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .container{padding:10px}
+            header{flex-direction:column;align-items:stretch;gap:15px}
+            .logo{justify-content:center}
+            .search-box{margin:0;order:3}
+            .auth-buttons, .user-info{justify-content:center}
+            .upload-section{flex-direction:column}
+            .upload-section input, .upload-section button{width:100%}
+            th, td{padding:10px 8px;font-size:14px}
+            .file-name a{word-break:break-word}
+            .modal-content{padding:15px;margin:10px}
+            .profile-search-box{flex-direction:row}
+            .actions{justify-content:center}
+        }
+        
+        @media (max-width: 480px) {
+            .breadcrumb{font-size:14px}
+            th, td{padding:8px 5px;font-size:13px}
+            .pagination a, .profile-pagination a{padding:6px 10px;font-size:13px}
+            .auth-buttons a, .user-info a{padding:6px 12px;font-size:13px}
+        }
+        
+        /* 文件类型图标颜色 */
+        .file-icon-folder{color:#f39c12}
+        .file-icon-image{color:#e74c3c}
+        .file-icon-document{color:#3498db}
+        .file-icon-audio{color:#9b59b6}
+        .file-icon-video{color:#e67e22}
+        .file-icon-archive{color:#95a5a6}
+        .file-icon-other{color:#7f8c8d}
+        
+        /* 加载动画 */
+        .loading{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin 1s ease-in-out infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">文件共享系统</div>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索文件...">
+                <button id="search-btn">搜索</button>
+            </div>
+            <div class="auth-buttons">
+                <a class="login-btn" id="login-btn">登录</a>
+                <a class="register-btn" id="register-btn">注册</a>
+            </div>
+            <div class="user-info" id="user-info">
+                <span id="username"></span>
+                <a class="profile-btn" id="profile-btn">个人中心</a>
+                <a class="logout-btn" id="logout-btn">退出</a>
+            </div>
+        </header>
+        
+        <div class="upload-section" id="upload-section">
+            <input type="file" id="file-input" multiple>
+            <button id="upload-btn">上传文件</button>
+            <button id="create-dir">创建文件夹</button>
+            
+            <!-- 上传进度条 -->
+            <div class="upload-progress-container" id="upload-progress-container">
+                <div class="upload-progress-info">
+                    <span id="upload-file-name">正在上传: 文件名</span>
+                    <span id="upload-percentage">0%</span>
+                </div>
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="upload-progress-fill"></div>
+                </div>
+                <div class="upload-progress-info">
+                    <span id="upload-status-text">准备上传...</span>
+                    <div class="upload-status">
+                        <span class="upload-speed" id="upload-speed">0 KB/s</span>
+                        <button class="upload-cancel-btn" id="upload-cancel-btn">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="breadcrumb" id="breadcrumb">
+            <a href="#" class="home-link">根目录</a>
+        </div>
+
+        <div class="file-list">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-sort="name">文件名 <span class="sort-indicator">↑</span></th>
+                        <th data-sort="size">大小 <span class="sort-indicator"></span></th>
+                        <th data-sort="modified">修改时间 <span class="sort-indicator"></span></th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="file-list-body">
+                    <!-- 文件列表将通过JavaScript动态加载 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- 分页将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>登录</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="login-username" placeholder="用户名">
+                <input type="password" id="login-password" placeholder="密码">
+                <button id="login-submit">登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div class="modal" id="register-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>注册</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="register-username" placeholder="用户名">
+                <input type="password" id="register-password" placeholder="密码">
+                <input type="password" id="register-confirm-password" placeholder="确认密码">
+                <button id="register-submit">注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 个人中心模态框 -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>个人中心 - 我的文件</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="profile-search-box">
+                    <input type="text" id="profile-search-input" placeholder="搜索我的文件...">
+                    <button id="profile-search-btn">搜索</button>
+                </div>
+                
+                <div class="file-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-sort="name" class="profile-sort">文件名 <span class="profile-sort-indicator">↑</span></th>
+                                <th data-sort="size" class="profile-sort">大小 <span class="profile-sort-indicator"></span></th>
+                                <th data-sort="modified" class="profile-sort">修改时间 <span class="profile-sort-indicator"></span></th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-file-list-body">
+                            <!-- 个人文件列表将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="profile-pagination" id="profile-pagination">
+                    <!-- 个人中心分页将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let currentPath = '/';
+        let currentPage = 1;
+        let pageSize = 20;
+        let sortField = 'name';
+        let sortOrder = 'asc';
+        let searchQuery = '';
+        
+        // 个人中心相关变量
+        let profileCurrentPage = 1;
+        let profilePageSize = 20;
+        let profileSortField = 'name';
+        let profileSortOrder = 'asc';
+        let profileSearchQuery = '';
+        
+        // 上传相关变量
+        let uploadStartTime = 0;
+        let uploadXHR = null;
+        let uploadProgressInterval = null;
+
+        // 页面加载完成后初始化
+        $(document).ready(function() {
+            checkLoginStatus();
+            bindEvents();
+            loadFileList();
+        });
+
+        // 绑定事件处理函数
+        function bindEvents() {
+            // 登录注册模态框
+            $('#login-btn').click(showLoginModal);
+            $('#register-btn').click(showRegisterModal);
+            $('.close').click(closeModals);
+            
+            // 表单提交
+            $('#login-submit').click(handleLogin);
+            $('#register-submit').click(handleRegister);
+            
+            // 搜索
+            $('#search-btn').click(handleSearch);
+            $('#search-input').keypress(function(e) {
+                if (e.which === 13) { // 回车键
+                    handleSearch();
+                }
+            });
+            
+            // 个人中心搜索
+            $('#profile-search-btn').click(handleProfileSearch);
+            $('#profile-search-input').keypress(function(e) {
+                if (e.which === 13) { // 回车键
+                    handleProfileSearch();
+                }
+            });
+            
+            // 排序
+            $('th[data-sort]').click(handleSort);
+            
+            // 文件操作
+            $('#upload-btn').click(handleUpload);
+            // 创建文件夹
+            $('#create-dir').click(function() {
+                const newDirName = prompt('请输入新文件夹名:');
+                if (newDirName) {
+                    handleCreateDir(newDirName);
+                }
+            });
+            // 用户操作
+            $('#profile-btn').click(showProfileModal);
+            $('#logout-btn').click(handleLogout);
+            
+            // 上传取消按钮
+            $('#upload-cancel-btn').click(cancelUpload);
+            
+            // 点击模态框外部关闭
+            $(window).click(function(event) {
+                if ($(event.target).hasClass('modal')) {
+                    closeModals();
+                }
+            });
+        }
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // 验证token有效性
+                $.ajax({
+                    url: '/api/users/me',
+                    type: 'GET',
+                    headers: {'Authorization': `Bearer ${token}`},
+                    success: function(user) {
+                        currentUser = user;
+                        updateUIAfterLogin();
+                    },
+                    error: function() {
+                        localStorage.removeItem('token');
+                    }
+                });
+            } else {
+                $('#upload-section').hide();
+            }
+        }
+
+        // 登录后更新UI
+        function updateUIAfterLogin() {
+            $('.auth-buttons').hide();
+            $('#user-info').show();
+            $('#username').text(currentUser.username);
+            // 如果是管理员或已登录用户，显示上传区域
+            if (currentUser.is_admin || currentUser.id) {
+                $('#upload-section').show();
+            }
+        }
+
+        // 显示登录模态框
+        function showLoginModal() {
+            closeModals();
+            $('#login-modal').show();
+        }
+
+        // 显示注册模态框
+        function showRegisterModal() {
+            closeModals();
+            $('#register-modal').show();
+        }
+
+        // 显示个人中心模态框
+        function showProfileModal() {
+            closeModals();
+            // 重置个人中心搜索和分页状态
+            profileCurrentPage = 1;
+            profileSearchQuery = '';
+            $('#profile-search-input').val('');
+            loadUserFiles();
+            $('#profile-modal').show();
+            
+            // 绑定个人中心排序事件
+            $('.profile-sort').off('click').click(handleProfileSort);
+        }
+
+        // 关闭所有模态框
+        function closeModals() {
+            $('.modal').hide();
+        }
+
+        // 处理登录
+        function handleLogin() {
+            const username = $('#login-username').val();
+            const password = $('#login-password').val();
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/auth/login',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({username, password}),
+                success: function(response) {
+                    localStorage.setItem('token', response.access_token);
+                    currentUser = response.user;
+                    updateUIAfterLogin();
+                    closeModals();
+                    loadFileList();
+                },
+                error: function(xhr) {
+                    alert('登录失败: ' + (xhr.responseJSON?.detail || '未知错误'));
+                }
+            });
+        }
+
+        // 处理注册
+        function handleRegister() {
+            const username = $('#register-username').val();
+            const password = $('#register-password').val();
+            const confirmPassword = $('#register-confirm-password').val();
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            $.ajax({
+                url: '/api/auth/register',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({username, password}),
+                success: function() {
+                    alert('注册成功，请登录');
+                    closeModals();
+                    showLoginModal();
+                },
+                error: function(xhr) {
+                    alert('注册失败: ' + (xhr.responseJSON?.detail || '未知错误'));
+                }
+            });
+        }
+
+        // 处理退出
+        function handleLogout() {
+            localStorage.removeItem('token');
+            currentUser = null;
+            $('.auth-buttons').show();
+            $('#user-info').hide();
+            $('#upload-section').hide();
+            loadFileList();
+        }
+
+        // 加载文件列表
+        function loadFileList() {
+            const params = {
+                path: currentPath,
+                page: currentPage,
+                page_size: pageSize,
+                sort: sortField,
+                order: sortOrder
+            };
+            
+            if (searchQuery) {
+                params.q = searchQuery;
+            }
+            
+            $.ajax({
+                url: '/api/files/',
+                type: 'GET',
+                data: params,
+                success: function(response) {
+                    renderFileList(response.files);
+                    renderBreadcrumb(response.path);
+                    renderPagination(response.total, response.page, response.pages);
+                },
+                error: function(xhr) {
+                    console.error('加载文件列表失败:', xhr);
+                }
+            });
+        }
+
+        // 渲染文件列表
+        function renderFileList(files) {
+            const $fileListBody = $('#file-list-body');
+            $fileListBody.empty();
+            
+            if (files.length === 0) {
+                $fileListBody.append('<tr><td colspan="4" style="text-align:center;">暂无文件</td></tr>');
+                return;
+            }
+            
+            files.forEach(file => {
+                const icon = getFileIcon(file);
+                const size = file.is_directory ? '-' : formatFileSize(file.size);
+                const modified = formatDate(file.modified_time);
+                
+                let actions = '';
+                if (currentUser) {
+                    if (currentUser.is_admin || file.owner_id === currentUser.id) {
+                        actions = `<a class="rename-btn" data-id="${file.id}">重命名</a>
+                                  <a class="delete-btn" data-id="${file.id}">删除</a>`;
+                    }
+                }
+                if (!file.is_directory) {
+                    actions += `<a href="/api/files/${file.id}/download" class="download-btn">下载</a>`;
+                }
+                    
+                
+                const $row = $(`
+                    <tr>
+                        <td class="file-name">
+                            ${icon}
+                            ${file.is_directory ? 
+                                `<a href="#" class="dir-link" data-path="${file.path}">${file.name}</a>` :
+                                `<a href="/api/files/${file.id}/download" target="_blank">${file.name}</a>`
+                            }
+                        </td>
+                        <td>${size}</td>
+                        <td>${modified}</td>
+                        <td class="actions">${actions}</td>
+                    </tr>
+                `);
+                
+                $fileListBody.append($row);
+            });
+            
+            // 绑定文件操作事件
+            $('.dir-link').click(function(e) {
+                e.preventDefault();
+                currentPath = $(this).data('path');
+                currentPage = 1;
+                loadFileList();
+            });
+            
+            $('.delete-btn').click(function() {
+                const fileId = $(this).data('id');
+                if (confirm('确定要删除这个文件吗？')) {
+                    deleteFile(fileId);
+                }
+            });
+            
+            $('.rename-btn').click(function() {
+                const fileId = $(this).data('id');
+                const newName = prompt('请输入新文件名:');
+                
+                if (newName) {
+                    renameFile(fileId, newName);
+                }
+            });
+        }
+
+        // 渲染面包屑导航
+        function renderBreadcrumb(path) {
+            const $breadcrumb = $('#breadcrumb');
+            $breadcrumb.empty();
+            
+            // 添加返回上一级
+            if (path !== '/') {
+                $breadcrumb.append('<a href="#" class="parent-link">返回上一级</a>');
+            }
+            
+            // 添加根目录
+            $breadcrumb.append('<a href="#" class="home-link">根目录</a>');
+            
+            // 添加路径各部分
+            if (path !== '/') {
+                const parts = path.split('/').filter(p => p);
+                let currentPath = '';
+                
+                parts.forEach(part => {
+                    currentPath += '/' + part;
+                    $breadcrumb.append(`<span>/</span><a href="#" class="path-link" data-path="${currentPath}">${part}</a>`);
+                });
+            }
+            
+            // 绑定面包屑事件
+            $('.home-link').click(function(e) {
+                e.preventDefault();
+                currentPath = '/';
+                currentPage = 1;
+                searchQuery = '';
+                loadFileList();
+            });
+            
+            $('.parent-link').click(function(e) {
+                e.preventDefault();
+                const parts = currentPath.split('/').filter(p => p);
+                parts.pop();
+                currentPath = '/' + parts.join('/');
+                if (currentPath === '') currentPath = '/';
+                currentPage = 1;
+                loadFileList();
+            });
+            
+            $('.path-link').click(function(e) {
+                e.preventDefault();
+                currentPath = $(this).data('path');
+                currentPage = 1;
+                loadFileList();
+            });
+        }
+
+        // 渲染分页
+        function renderPagination(total, page, pages) {
+            const $pagination = $('#pagination');
+            $pagination.empty();
+            
+            if (pages <= 1) return;
+            
+            // 上一页
+            if (page > 1) {
+                $pagination.append(`<a href="#" class="page-link" data-page="${page - 1}">上一页</a>`);
+            }
+            
+            // 页码
+            for (let i = 1; i <= pages; i++) {
+                if (i === page) {
+                    $pagination.append(`<a href="#" class="page-link active" data-page="${i}">${i}</a>`);
+                } else {
+                    $pagination.append(`<a href="#" class="page-link" data-page="${i}">${i}</a>`);
+                }
+            }
+            
+            // 下一页
+            if (page < pages) {
+                $pagination.append(`<a href="#" class="page-link" data-page="${page + 1}">下一页</a>`);
+            }
+            
+            // 绑定分页事件
+            $('.page-link').click(function(e) {
+                e.preventDefault();
+                currentPage = $(this).data('page');
+                loadFileList();
+            });
+        }
+
+        // 处理搜索
+        function handleSearch() {
+            searchQuery = $('#search-input').val();
+            currentPage = 1;
+            loadFileList();
+            searchQuery = '';
+        }
+
+        // 处理排序
+        function handleSort() {
+            const field = $(this).data('sort');
+            
+            // 更新排序指示器
+            $('.sort-indicator').text('');
+            if (sortField === field) {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortOrder = 'asc';
+            }
+            $(this).find('.sort-indicator').text(sortOrder === 'asc' ? '↑' : '↓');
+            
+            currentPage = 1;
+            loadFileList();
+        }
+        
+        function handleCreateDir(dirName){
+            $.ajax({
+                url: `/api/files/dir`,
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                data: JSON.stringify({
+                    dirname: dirName,
+                    path: currentPath
+                }),
+                success: function() {
+                    alert('文件夹创建成功');
+                    loadFileList();
+                    // 如果个人中心模态框是打开的，也刷新个人中心文件列表
+                    if ($('#profile-modal').is(':visible')) {
+                        loadUserFiles();
+                    }
+                },
+                error: function(xhr) {
+                    alert('文件夹创建失败: ' + (xhr.responseJSON?.detail || '未知错误'));
+                }
+            });
+        }
+
+        // 处理文件上传
+        function handleUpload() {
+            const files = $('#file-input')[0].files;
+            if (files.length === 0) {
+                alert('请选择要上传的文件');
+                return;
+            }
+            
+            // 重置上传状态
+            resetUploadProgress();
+            
+            // 显示进度条
+            $('#upload-progress-container').show();
+            
+            // 设置上传开始时间
+            uploadStartTime = Date.now();
+            
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('file', files[i]);
+            }
+            formData.append('path', currentPath);
+            
+            // 显示第一个文件名
+            if (files.length === 1) {
+                $('#upload-file-name').text(`正在上传: ${files[0].name}`);
+            } else {
+                $('#upload-file-name').text(`正在上传 ${files.length} 个文件`);
+            }
+            
+            // 创建XMLHttpRequest对象以跟踪进度
+            uploadXHR = new XMLHttpRequest();
+            
+            // 监听上传进度
+            uploadXHR.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    updateUploadProgress(percentComplete, e.loaded, e.total);
+                }
+            });
+            
+            // 监听上传完成
+            uploadXHR.addEventListener('load', function() {
+                if (uploadXHR.status === 200) {
+                    uploadComplete();
+                } else {
+                    uploadError('上传失败: ' + uploadXHR.statusText);
+                }
+            });
+            
+            // 监听上传错误
+            uploadXHR.addEventListener('error', function() {
+                uploadError('上传过程中发生错误');
+            });
+            
+            // 监听上传中止
+            uploadXHR.addEventListener('abort', function() {
+                uploadError('上传已取消');
+            });
+            
+            // 开始上传
+            uploadXHR.open('POST', '/api/files/upload');
+            uploadXHR.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+            uploadXHR.send(formData);
+            
+            // 开始更新速度显示
+            uploadProgressInterval = setInterval(updateUploadSpeed, 500);
+        }
+
+        // 更新上传进度
+        function updateUploadProgress(percent, loaded, total) {
+            const progressFill = $('#upload-progress-fill');
+            const percentage = $('#upload-percentage');
+            
+            progressFill.css('width', percent + '%');
+            percentage.text(Math.round(percent) + '%');
+            
+            // 更新状态文本
+            $('#upload-status-text').text(`已上传: ${formatFileSize(loaded)} / ${formatFileSize(total)}`);
+        }
+
+        // 更新上传速度
+        function updateUploadSpeed() {
+            const now = Date.now();
+            const elapsed = (now - uploadStartTime) / 1000; // 转换为秒
+            
+            if (elapsed > 0) {
+                // 这里需要知道已上传的字节数
+                // 由于我们无法直接从XHR获取，我们通过进度事件更新
+                // 这个函数主要为了展示如何实现，实际实现需要调整
+                $('#upload-speed').text('计算中...');
+            }
+        }
+
+        // 上传完成
+        function uploadComplete() {
+            clearInterval(uploadProgressInterval);
+            
+            $('#upload-status-text').text('上传完成!');
+            $('#upload-progress-fill').css('width', '100%');
+            $('#upload-percentage').text('100%');
+            $('#upload-speed').text('');
+            
+            // 禁用取消按钮
+            $('#upload-cancel-btn').prop('disabled', true);
+            
+            // 2秒后隐藏进度条
+            setTimeout(function() {
+                $('#upload-progress-container').hide();
+                resetUploadProgress();
+                
+                // 刷新文件列表
+                loadFileList();
+                
+                // 清空文件输入
+                $('#file-input').val('');
+            }, 2000);
+            
+        }
+
+        // 上传错误
+        function uploadError(message) {
+            clearInterval(uploadProgressInterval);
+            
+            $('#upload-status-text').text(message);
+            $('#upload-progress-fill').css('background', '#e74c3c');
+            
+            // 3秒后隐藏进度条
+            setTimeout(function() {
+                $('#upload-progress-container').hide();
+                resetUploadProgress();
+            }, 3000);
+        }
+
+        // 取消上传
+        function cancelUpload() {
+            if (uploadXHR) {
+                uploadXHR.abort();
+            }
+            clearInterval(uploadProgressInterval);
+            $('#upload-progress-container').hide();
+            resetUploadProgress();
+        }
+
+        // 重置上传进度
+        function resetUploadProgress() {
+            $('#upload-progress-fill').css({
+                'width': '0%',
+                'background': 'linear-gradient(90deg, #23936f, #2ecc71)'
+            });
+            $('#upload-percentage').text('0%');
+            $('#upload-status-text').text('准备上传...');
+            $('#upload-speed').text('0 KB/s');
+            $('#upload-file-name').text('正在上传: 文件名');
+            $('#upload-cancel-btn').prop('disabled', false);
+            
+            uploadXHR = null;
+            uploadStartTime = 0;
+        }
+
+        // 删除文件
+        function deleteFile(fileId) {
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                type: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                success: function() {
+                    alert('文件删除成功');
+                    loadFileList();
+                    // 如果个人中心模态框是打开的，也刷新个人中心文件列表
+                    if ($('#profile-modal').is(':visible')) {
+                        loadUserFiles();
+                    }
+                },
+                error: function(xhr) {
+                    alert('文件删除失败: ' + (xhr.responseJSON?.detail || '未知错误'));
+                }
+            });
+        }
+
+        // 重命名文件
+        function renameFile(fileId, newName) {
+            $.ajax({
+                url: `/api/files/${fileId}`,
+                type: 'PUT',
+                contentType: 'application/json',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                data: JSON.stringify({name: newName}),
+                success: function() {
+                    alert('文件重命名成功');
+                    loadFileList();
+                    // 如果个人中心模态框是打开的，也刷新个人中心文件列表
+                    if ($('#profile-modal').is(':visible')) {
+                        loadUserFiles();
+                    }
+                },
+                error: function(xhr) {
+                    alert('文件重命名失败: ' + (xhr.responseJSON?.detail || '未知错误'));
+                }
+            });
+        }
+
+        // 加载用户文件
+        function loadUserFiles() {
+            const params = {
+                page: profileCurrentPage,
+                page_size: profilePageSize,
+                sort: profileSortField,
+                order: profileSortOrder
+            };
+            
+            if (profileSearchQuery) {
+                params.q = profileSearchQuery;
+            }
+            
+            $.ajax({
+                url: '/api/users/me/files',
+                type: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                data: params,
+                success: function(response) {
+                    renderUserFiles(response.files);
+                    renderProfilePagination(response.total, response.page, response.pages);
+                },
+                error: function(xhr) {
+                    console.error('加载用户文件失败:', xhr);
+                }
+            });
+        }
+
+        // 渲染用户文件
+        function renderUserFiles(files) {
+            const $profileFileListBody = $('#profile-file-list-body');
+            $profileFileListBody.empty();
+            
+            if (files.length === 0) {
+                $profileFileListBody.append('<tr><td colspan="4" style="text-align:center;">暂无文件</td></tr>');
+                return;
+            }
+            
+            files.forEach(file => {
+                const icon = getFileIcon(file);
+                const size = file.is_directory ? '-' : formatFileSize(file.size);
+                const modified = formatDate(file.modified_time);
+                
+                const $row = $(`
+                    <tr>
+                        <td class="file-name">
+                            ${icon}
+                            <a href="/api/files/${file.id}/download" target="_blank">${file.name}</a>
+                        </td>
+                        <td>${size}</td>
+                        <td>${modified}</td>
+                        <td class="actions">
+                            <a class="rename-btn" data-id="${file.id}">重命名</a>
+                            <a class="delete-btn" data-id="${file.id}">删除</a>
+                            <a href="/api/files/${file.id}/download" class="download-btn">下载</a>
+                        </td>
+                    </tr>
+                `);
+                
+                $profileFileListBody.append($row);
+            });
+            
+            // 绑定个人中心文件操作事件
+            $profileFileListBody.find('.delete-btn').click(function() {
+                const fileId = $(this).data('id');
+                if (confirm('确定要删除这个文件吗？')) {
+                    deleteFile(fileId);
+                }
+            });
+            
+            $profileFileListBody.find('.rename-btn').click(function() {
+                const fileId = $(this).data('id');
+                const newName = prompt('请输入新文件名:');
+                if (newName) {
+                    renameFile(fileId, newName);
+                }
+            });
+        }
+
+        // 渲染个人中心分页
+        function renderProfilePagination(total, page, pages) {
+            const $profilePagination = $('#profile-pagination');
+            $profilePagination.empty();
+            
+            if (pages <= 1) return;
+            
+            // 上一页
+            if (page > 1) {
+                $profilePagination.append(`<a href="#" class="profile-page-link" data-page="${page - 1}">上一页</a>`);
+            }
+            
+            // 页码
+            for (let i = 1; i <= pages; i++) {
+                if (i === page) {
+                    $profilePagination.append(`<a href="#" class="profile-page-link active" data-page="${i}">${i}</a>`);
+                } else {
+                    $profilePagination.append(`<a href="#" class="profile-page-link" data-page="${i}">${i}</a>`);
+                }
+            }
+            
+            // 下一页
+            if (page < pages) {
+                $profilePagination.append(`<a href="#" class="profile-page-link" data-page="${page + 1}">下一页</a>`);
+            }
+            
+            // 绑定个人中心分页事件
+            $('.profile-page-link').click(function(e) {
+                e.preventDefault();
+                profileCurrentPage = $(this).data('page');
+                loadUserFiles();
+            });
+        }
+
+        // 处理个人中心搜索
+        function handleProfileSearch() {
+            profileSearchQuery = $('#profile-search-input').val();
+            profileCurrentPage = 1;
+            loadUserFiles();
+        }
+
+        // 处理个人中心排序
+        function handleProfileSort() {
+            const field = $(this).data('sort');
+            
+            // 更新个人中心排序指示器
+            $('.profile-sort-indicator').text('');
+            if (profileSortField === field) {
+                profileSortOrder = profileSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                profileSortField = field;
+                profileSortOrder = 'asc';
+            }
+            $(this).find('.profile-sort-indicator').text(profileSortOrder === 'asc' ? '↑' : '↓');
+            
+            profileCurrentPage = 1;
+            loadUserFiles();
+        }
+
+        // 获取文件图标
+        function getFileIcon(file) {
+            if (file.is_directory) {
+                return '<span class="file-icon-folder">📁</span>';
+            }
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            const iconMap = {
+                'pdf': '📕',
+                'zip': '📦',
+                'rar': '📦',
+                '7z': '📦',
+                'jpg': '🖼️',
+                'jpeg': '🖼️',
+                'png': '🖼️',
+                'gif': '🖼️',
+                'txt': '📄',
+                'doc': '📄',
+                'docx': '📄',
+                'xls': '📊',
+                'xlsx': '📊',
+                'ppt': '📽️',
+                'pptx': '📽️',
+                'mp3': '🎵',
+                'wav': '🎵',
+                'mp4': '🎬',
+                'avi': '🎬',
+                'mov': '🎬'
+            };
+            
+            return iconMap[ext] || '<span class="file-icon-other">📄</span>';
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN');
+        }
+    </script>
+</body>
+</html>
