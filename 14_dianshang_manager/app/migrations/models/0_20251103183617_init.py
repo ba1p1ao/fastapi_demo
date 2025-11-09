@@ -1,0 +1,81 @@
+from tortoise import BaseDBAsyncClient
+
+RUN_IN_TRANSACTION = True
+
+
+async def upgrade(db: BaseDBAsyncClient) -> str:
+    return """
+        CREATE TABLE IF NOT EXISTS `users` (
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `username` VARCHAR(50) NOT NULL UNIQUE,
+    `email` VARCHAR(100) NOT NULL UNIQUE,
+    `hashed_password` VARCHAR(255) NOT NULL,
+    `is_active` BOOL NOT NULL  DEFAULT 1,
+    `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+) CHARACTER SET utf8mb4;
+CREATE TABLE IF NOT EXISTS `products` (
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `description` LONGTEXT,
+    `price` DECIMAL(10,2) NOT NULL,
+    `stock` INT NOT NULL  DEFAULT 0,
+    `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+) CHARACTER SET utf8mb4;
+CREATE TABLE IF NOT EXISTS `orders` (
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `total_amount` DECIMAL(10,2) NOT NULL,
+    `status` VARCHAR(20) NOT NULL  DEFAULT 'pending',
+    `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
+    `updated_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    `user_id` INT NOT NULL,
+    CONSTRAINT `fk_orders_users_411bb784` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) CHARACTER SET utf8mb4;
+CREATE TABLE IF NOT EXISTS `order_items` (
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `quantity` INT NOT NULL,
+    `price` DECIMAL(10,2) NOT NULL,
+    `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
+    `order_id` INT NOT NULL,
+    `product_id` INT NOT NULL,
+    CONSTRAINT `fk_order_it_orders_b892ad0e` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_order_it_products_aebdc7ef` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) CHARACTER SET utf8mb4;
+CREATE TABLE IF NOT EXISTS `aerich` (
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `version` VARCHAR(255) NOT NULL,
+    `app` VARCHAR(100) NOT NULL,
+    `content` JSON NOT NULL
+) CHARACTER SET utf8mb4;"""
+
+
+async def downgrade(db: BaseDBAsyncClient) -> str:
+    return """
+        """
+
+
+MODELS_STATE = (
+    "eJztmlFP2zAQx78KytOQGIIOtmlvpZStG9AJumnahCI3Ma2FY4fEGVRTv/tsJ6mdxAmkLZ"
+    "BueWvPd7HvZ+f8d5I/lkddiMPdbyEMrA9bfywCPMh/ZOw7WxbwfWUVBgbGWDpG3ENawDhk"
+    "AXAYN14DHEJucmHoBMhniBJuJRHGwkgd7ojIRJkigm4jaDM6gWwqB/LripsRceE9DNO//o"
+    "19jSB2M+NEruhb2m0286VtQNiJdBS9jW2H4sgjytmfsSklC29EmLBOIIEBYFBcngWRGL4Y"
+    "XZJmmlE8UuUSD1GLceE1iDDT0n0kA4cSwY+PJpQJTkQv+7xB9t/ZP3h38P7N24N38zgplX"
+    "HsLvM+H1lz2Q4YiD0kPEVLTJb8XWDWm4LADE2PyaHjA86jS0G9KDsP3NsYkgmb8r+HexXI"
+    "vncvep+6F68O97YlOoUKegDhOpwWAZsIaX/vMZS4Vx7TFIRT6No+CMM7GhhuxnJghtD1oE"
+    "sNip0qSE8Br3N4+Ah43CsPD4U2L5jot+F+PKIUQ0BK6pgel2M25oFPBW2xBJeCVsHoaDg8"
+    "FYMObzFiUK9lCpYTQJGODViR1jFvYciDZlzZyBwvNwndTX80dMXxHNwhwbNkGipgjgZn/c"
+    "tR9+yryMSbcaYSUXfUFy2v3m5LCjRkk0BGqYDRT0tcF0SM2oTe2cDVCk9qTZPLTE7ku0tO"
+    "TjaynZyVJ0cOQOil6xtNAwjDGDg3dyBw7UyLmkRehBMtl6tFSdzJlwuIgYRTnKpEMA7FNZ"
+    "o5S/N06aVWHRbt0DJaxSav4+UtgICJHLXoW/SU8PgaUDeSorigrdOmSnntx06twt4QhV1X"
+    "Xa9XWW+M8tF7L9AawfuS5ZULWwpasoyev/AYt4P+j1FmJzgdnn+UxiwvP0COYV0dQwd5AJ"
+    "thLWLym2octJsEN3OdVTA77vcGZ91TfhrZ6WxnVWO64g4K55SQUeemRiFb+D9cy9YFbG/V"
+    "WvZ6UcPeL1XVWq3dQDnXau0GT86KWtvmZctbh+Ae8Os0c7peRHTHhxCD5F6cTsoFtzoEtX"
+    "K7+XKbUQawDTwaEVM1rJJH+dBWJQnVA1hkKEjl5xcV8XwnGMuHxBVYVliN2WPMYx5+dwq0"
+    "WpXUmI24VUkNnpxkANnXkHatjU6LeL4D2UtteAVBmSVXxHZCA4gm5AucSXoDPg5AjGf/3G"
+    "v95lEr04vcHIC7hV7SFwRPjycF472t173sdY/71rwV4U0Q4ZJJmRBPgT0gxtUEtYq8GQWq"
+    "SpHfRoAwxGY1mOkhm1Xd1/fErX3Au+LRpRXjjdF7RTGe1PE6hVQP2ayisFxF1UuBfOVbD1"
+    "c26N8HVqGRafqQb0WRvIGfMuRVsn4TmWWyYeGtAZ32acPmwsveUnVPGU8prbuQ7/xTy6Cr"
+    "k5ZKUQ2UT6unG1HMqvT0bxiExq8kyp/JaiH/2WclYtHXAJW4byakpT/Z5ldl0PS65PPl8L"
+    "xEIquQHKxvhCfxy0UO29nCKGRXzURXQUpknZe8wnZkUhnPWe/nfwEGIMSB"
+)
