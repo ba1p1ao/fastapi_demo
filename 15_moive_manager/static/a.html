@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+
+    moive = {
+    "categories": {
+        "name": "悬疑"
+    },
+    "comments": [
+        {
+            "id": 25,
+            "rating": 9.9,
+            "content": "电影史上的不朽之作，希望永远存在",
+            "is_deleted": false,
+            "movie_id": 14,
+            "created_at": "2023-05-15T14:40:00+08:00",
+            "user_id": 8,
+            "deleted_at": null
+        }
+    ],
+    "id": 14,
+    "rating": 9.3,
+    "director": "弗兰克·德拉邦特",
+    "country": "美国",
+    "language": "英语",
+    "duration": 142,
+    "release_year": 1994,
+    "updated_at": "2025-11-05T11:02:42.593029+08:00",
+    "cover_url": "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",
+    "actors": "蒂姆·罗宾斯,摩根·弗里曼",
+    "created_at": "2025-11-05T11:02:42.593029+08:00",
+    "description": "20世纪40年代末，小有成就的青年银行家安迪因涉嫌杀害妻子及她的情人而锒铛入狱。在这座名为肖申克的监狱内，希望似乎虚无缥缈，终身监禁的惩罚无疑注定了安迪接下来灰暗绝望的人生。",
+    "title": "肖申克的救赎",
+    "plot": "安迪被冤枉杀害妻子及其情人，被判无期徒刑，进入肖申克监狱。在残酷的监狱环境中，他利用自己的金融知识为狱警处理财务，并默默实施着一个惊人的越狱计划。"
+}
+
+console.log(moive.categories.map(cat => cat.name));
+
+</script>
+</html>
