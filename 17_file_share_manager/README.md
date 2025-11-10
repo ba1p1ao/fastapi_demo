@@ -73,7 +73,15 @@ aerich init-db
 
 需要数据库操作
 ``` sql
-update users set is_admin = 1 where username = '用户名';
+-- 用户表数据
+INSERT INTO users (username, password_hash, is_admin, created_at) VALUES
+('admin', '$2b$12$LQv3c1yqBWVHxkd0L8k4CuB9g6ZYFgGZ8t8e4oA6p6WJkZ5J5J5Ju', 1, CURRENT_TIMESTAMP),
+-- 注意：上面的密码哈希对应明文密码 "123123"
+
+-- 文件表数据 - 根目录结构
+INSERT INTO files (name, path, size, is_directory, mime_type, owner_id, parent_id, upload_time, modified_time) VALUES
+('根目录', '/', 0, 1, NULL, 1, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
 ```
 
 
