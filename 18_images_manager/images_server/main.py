@@ -54,6 +54,7 @@ r = redis.Redis(connection_pool=redis_pool)
 # 异步Redis连接池
 async_redis = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global async_redis
@@ -70,14 +71,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"异步Redis连接失败: {e}")
         async_redis = None
-    
+
     # 确保预览图目录存在
     Path(PREVIEW_DIR).mkdir(exist_ok=True)
-    
+
     yield
-    
+
     if async_redis:
         await async_redis.close()
+
 
 # 检查Redis连接
 try:
@@ -123,7 +125,15 @@ Path(PREVIEW_DIR).mkdir(exist_ok=True)  # 确保预览图目录存在
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.mount("/thumbnails", StaticFiles(directory=THUMBNAIL_DIR), name="thumbnails")
-app.mount("/previews", StaticFiles(directory=PREVIEW_DIR), name="previews")  # 挂载预览图目录
+app.mount(
+    "/previews", StaticFiles(directory=PREVIEW_DIR), name="previews"
+)  # 挂载预览图目录
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/static/index.html")
+
 
 def validate_filename(filename: str) -> bool:
     """验证文件名是否安全，防止路径遍历攻击"""
@@ -150,9 +160,6 @@ def validate_filename(filename: str) -> bool:
     dangerous_chars = ["..", "\x00", "\n", "\r"]
     return not any(char in filename for char in dangerous_chars)
 
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/static/index.html")
 
 @app.get("/system-status")
 async def system_status(use_cache: bool = True):
@@ -194,6 +201,7 @@ async def system_status(use_cache: bool = True):
         logger.error(f"获取系统状态失败: {e}")
         raise HTTPException(status_code=500, detail="获取系统状态失败")
 
+
 async def is_allowed_file(file: UploadFile) -> bool:
     """检查文件类型"""
     try:
@@ -204,6 +212,7 @@ async def is_allowed_file(file: UploadFile) -> bool:
     except Exception as e:
         logger.error(f"文件类型检查失败: {e}")
         return False
+
 
 @app.post("/upload")
 @limiter.limit("100/minute")
@@ -235,14 +244,15 @@ async def upload_image(
         file_path = os.path.join(UPLOAD_DIR, filename)
 
         try:
+            total_size = 0
             async with aiofiles.open(file_path, "wb") as f:
-                total_size = 0
                 while True:
                     chunk = await file.read(MAX_MEMORY_CHUNK)
                     if not chunk:
                         break
                     total_size += len(chunk)
                     if total_size > MAX_FILE_SIZE:
+                        await f.close()
                         if os.path.exists(file_path):
                             os.remove(file_path)
                         raise HTTPException(status_code=400, detail="文件太大")
@@ -273,12 +283,14 @@ async def upload_image(
                     pass
             raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
 
+
 async def delayed_thumbnail_processing(file_path, filename, original_name, size):
     """延迟处理缩略图，避免立即占用资源"""
     active_thumbnails = MAX_CONCURRENT_THUMBNAILS - thumbnail_semaphore._value
     delay_time = min(2, active_thumbnails * 0.1)
     await asyncio.sleep(delay_time)
     await process_thumbnail_and_preview(file_path, filename, original_name, size)
+
 
 async def process_thumbnail_and_preview(file_path, filename, original_name, size):
     """同时生成缩略图和预览图"""
@@ -294,7 +306,7 @@ async def process_thumbnail_and_preview(file_path, filename, original_name, size
                 ),
                 asyncio.get_event_loop().run_in_executor(
                     thread_pool, create_preview, file_path, preview_path
-                )
+                ),
             )
 
             file_info = {
@@ -333,14 +345,15 @@ async def process_thumbnail_and_preview(file_path, filename, original_name, size
         except Exception as e:
             logger.error(f"缩略图或预览图生成失败 {filename}: {e}")
 
+
 def create_thumbnail(image_path, thumbnail_path, size=(200, 150)):
     """生成缩略图"""
     try:
         with Image.open(image_path) as img:
             # 转换为RGB模式（如果必要）
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img = img.convert('RGB')
-            
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGB")
+
             # 如果图片很大，先进行初步缩放
             if max(img.size) > 1000:
                 img.thumbnail((size[0] * 2, size[1] * 2), Image.NEAREST)
@@ -351,7 +364,7 @@ def create_thumbnail(image_path, thumbnail_path, size=(200, 150)):
             # 确保输出为JPEG格式
             if not thumbnail_path.lower().endswith(".jpg"):
                 thumbnail_path = thumbnail_path.rsplit(".", 1)[0] + ".jpg"
-            
+
             img.save(thumbnail_path, quality=70, optimize=True)
             logger.info(f"缩略图生成成功: {thumbnail_path}")
 
@@ -365,25 +378,26 @@ def create_thumbnail(image_path, thumbnail_path, size=(200, 150)):
         except Exception as e2:
             logger.error(f"缩略图占位图生成也失败: {e2}")
 
+
 def create_preview(image_path, preview_path, max_size=(1200, 800)):
     """生成中等质量的预览图"""
     try:
         with Image.open(image_path) as img:
             # 转换为RGB模式（如果必要）
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img = img.convert('RGB')
-            
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGB")
+
             # 保持原图比例，调整大小
             img.thumbnail(max_size, Image.Resampling.LANCZOS)
-            
+
             # 确保输出为JPEG格式以减小文件大小
             if not preview_path.lower().endswith(".jpg"):
                 preview_path = preview_path.rsplit(".", 1)[0] + ".jpg"
-            
+
             # 保存为中等质量，平衡画质和文件大小
             img.save(preview_path, quality=75, optimize=True)
             logger.info(f"预览图生成成功: {preview_path}")
-            
+
     except Exception as e:
         logger.error(f"预览图生成失败: {e}")
         try:
@@ -393,6 +407,7 @@ def create_preview(image_path, preview_path, max_size=(1200, 800)):
             logger.info(f"生成预览图占位图: {preview_path}")
         except Exception as e2:
             logger.error(f"预览图占位图生成也失败: {e2}")
+
 
 @app.get("/download/{filename}")
 async def download_image(filename: str):
@@ -411,6 +426,7 @@ async def download_image(filename: str):
     return FileResponse(
         file_path, filename=filename, media_type="application/octet-stream"
     )
+
 
 @app.get("/images")
 async def list_images(page: int = 1, per_page: int = 20, q: str = None):
@@ -472,6 +488,7 @@ async def list_images(page: int = 1, per_page: int = 20, q: str = None):
 
     return {"images": images, "page": page, "per_page": per_page}
 
+
 async def search_images(keyword: str, page: int = 1, per_page: int = 20):
     """根据关键词模糊搜索图片"""
     if page < 1:
@@ -509,7 +526,7 @@ async def search_images(keyword: str, page: int = 1, per_page: int = 20):
             if file_info:
                 original_name = file_info.get("original_name", "")
                 original_name_lower = original_name.lower()
-                if (keyword_lower in original_name_lower):
+                if keyword_lower in original_name_lower:
                     images.append(
                         {
                             "filename": filename,
@@ -539,6 +556,7 @@ async def search_images(keyword: str, page: int = 1, per_page: int = 20):
         "keyword": keyword,
     }
 
+
 async def cleanup_invalid_records(invalid_filenames):
     """异步清理无效记录"""
     try:
@@ -546,27 +564,28 @@ async def cleanup_invalid_records(invalid_filenames):
             try:
                 r.delete(f"image:{filename}")
                 r.lrem("recent_images", 0, filename)
-                
+
                 # 同时删除缩略图和预览图
                 thumbnail_path = os.path.join(THUMBNAIL_DIR, f"thumb_{filename}")
                 preview_path = os.path.join(PREVIEW_DIR, f"preview_{filename}")
-                
+
                 if os.path.exists(thumbnail_path):
                     os.remove(thumbnail_path)
                 if os.path.exists(preview_path):
                     os.remove(preview_path)
-                    
+
             except RedisConnectionError:
                 logger.warning(f"清理Redis记录失败: {filename}")
         logger.info(f"清理了 {len(invalid_filenames)} 个无效记录")
     except Exception as e:
         logger.error(f"清理无效记录失败: {e}")
 
+
 @app.get("/thumbnail/{filename}")
 async def get_thumbnail(filename: str):
     # 解码URL编码的文件名
     filename = unquote(filename)
-    
+
     if not validate_filename(filename):
         raise HTTPException(status_code=400, detail="无效的文件名")
 
@@ -574,8 +593,8 @@ async def get_thumbnail(filename: str):
     name_without_ext = os.path.splitext(filename)[0]
     thumbnail_filename = f"thumb_{name_without_ext}.jpg"
     thumbnail_path = os.path.join(THUMBNAIL_DIR, thumbnail_filename)
-    
-    print(f"Looking for thumbnail: {thumbnail_path}")  # 调试日志
+
+    # print(f"Looking for thumbnail: {thumbnail_path}")  # 调试日志
 
     if os.path.exists(thumbnail_path):
         return FileResponse(thumbnail_path)
@@ -593,12 +612,13 @@ async def get_thumbnail(filename: str):
 
     raise HTTPException(status_code=404, detail="缩略图不存在")
 
+
 # 修改预览图获取接口
 @app.get("/preview/{filename}")
 async def get_preview(filename: str):
     # 解码URL编码的文件名
     filename = unquote(filename)
-    
+
     if not validate_filename(filename):
         raise HTTPException(status_code=400, detail="无效的文件名")
 
@@ -606,8 +626,8 @@ async def get_preview(filename: str):
     name_without_ext = os.path.splitext(filename)[0]
     preview_filename = f"preview_{name_without_ext}.jpg"
     preview_path = os.path.join(PREVIEW_DIR, preview_filename)
-    
-    print(f"Looking for preview: {preview_path}")  # 调试日志
+
+    # print(f"Looking for preview: {preview_path}")  # 调试日志
 
     if os.path.exists(preview_path):
         return FileResponse(preview_path)
@@ -624,6 +644,7 @@ async def get_preview(filename: str):
             logger.error(f"创建预览图失败: {e}")
 
     raise HTTPException(status_code=404, detail="预览图不存在")
+
 
 @app.delete("/image/{filename}")
 async def delete_image(filename: str):
@@ -657,6 +678,7 @@ async def delete_image(filename: str):
         logger.error(f"删除失败: {e}")
         raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
 
+
 @app.get("/health")
 async def health_check():
     redis_ok = False
@@ -672,6 +694,7 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "redis_connected": redis_ok,
     }
+
 
 if __name__ == "__main__":
     import uvicorn
